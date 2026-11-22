@@ -12,3 +12,7 @@ My practical DevSecOps and Security Engineering learning lab.
 - CI/CD security
 - Network security
 - OWASP
+
+## Learning Progress
+
+- Git basics: completed
