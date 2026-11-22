@@ -232,7 +232,7 @@ new file: notes/01-git-basics.md
 
 `.DS_Store` пропал из обычного статуса, потому что теперь подходит под правило в `.gitignore`.
 
-`git diff --cached --stat` показал:
+На этом этапе первоначальная проверка `git diff --cached --stat` показала:
 
 ```text
 .gitignore             |   1 +
@@ -240,7 +240,9 @@ notes/01-git-basics.md | 239 ++++++++++++++++++++++++++++++++++++++++++++++
 2 files changed, 240 insertions(+)
 ```
 
-Значит, к коммиту подготовлены правило игнорирования и полный конспект урока. Следующий шаг — сохранить их:
+После повторного `git add notes/01-git-basics.md` команда `git status` показала только два подготовленных новых файла: `.gitignore` и `notes/01-git-basics.md`. Финальный `git diff --cached --stat` показал 272 строки конспекта и 273 добавленные строки суммарно.
+
+Затем изменения были сохранены:
 
 ```bash
 git commit -m "Add Git study notes and ignore macOS files"
@@ -248,7 +250,24 @@ git status
 git log --oneline
 ```
 
-Пришли вывод этих команд. После этого зафиксируем итог урока и разберём, почему игнорируемый `.DS_Store` не попадает в список новых файлов.
+Результат коммита:
+
+```text
+[main 1096bd7] Add Git study notes and ignore macOS files
+ 2 files changed, 273 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 notes/01-git-basics.md
+```
+
+После коммита `git status` показал `nothing to commit, working tree clean`. В `git log --oneline` теперь три коммита:
+
+```text
+1096bd7 (HEAD -> main) Add Git study notes and ignore macOS files
+3e07ab2 Add learning progress to README
+923c00c Initial commit: and project README
+```
+
+`.gitignore` и конспект сохранены в истории. `.DS_Store` не попал в коммит, потому что соответствует правилу `.DS_Store` в `.gitignore`.
 
 ## Что важно запомнить
 
@@ -269,4 +288,4 @@ git log --oneline
 4. Что означает `working tree clean`?
 5. Что показывает `git diff` до `git add`?
 
-**Освоение темы:** создание репозитория, README, подготовка изменений, просмотр `git diff` и `git diff --cached`, а также второй коммит выполнены. `.gitignore` и конспект подготовлены к коммиту; сохранение этих файлов ожидает продолжения.
+**Освоение темы:** создание репозитория, README, подготовка изменений, просмотр `git diff` и `git diff --cached`, создание `.gitignore`, добавление конспекта и три коммита выполнены. Последний `git status` подтвердил чистую рабочую папку.
