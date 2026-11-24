@@ -306,3 +306,95 @@ Usage: http-check.py URL [URL ...]
 Один успешный URL завершил программу с кодом `0`; отсутствие аргументов вывело подсказку и завершило программу с кодом `2`.
 
 **Следующий шаг:** изучить функции и вынести повторяемую проверку URL в отдельную функцию.
+
+## Функции: параметры и `return`
+
+Создали `function-practice.py`:
+
+```python
+def calculate_total_wait(attempts, timeout):
+    return attempts * timeout
+
+total = calculate_total_wait(3, 15)
+print(f"Total wait: {total} seconds")
+```
+
+Запустили командой `python3 function-practice.py`:
+
+```text
+Total wait: 45 seconds
+```
+
+`def` объявляет функцию, `attempts` и `timeout` — её параметры. При вызове функции передали значения `3` и `15`; `return` вернул результат умножения вызывающему коду.
+
+## Функция `check_url` в HTTP-чекере
+
+Вынесли обработку одного URL в `check_url(url)`. Функция возвращает `0`, если запрос успешен, и `1`, если возникла обработанная HTTP-, сетевая ошибка или тайм-аут. Основная часть скрипта перебирает URL, собирает общий код завершения и возвращает его через `SystemExit`.
+
+Текущая версия `http-check.py`:
+
+```python
+import sys
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
+
+def check_url(url):
+    try:
+        with urlopen(url, timeout=10) as response:
+            print(f"{url} -> HTTP {response.status}")
+        return 0
+    except HTTPError as error:
+        print(f"{url} -> HTTP error: {error.code}")
+    except TimeoutError as error:
+        print(f"{url} -> Timeout: {error}")
+    except URLError as error:
+        print(f"{url} -> Network error: {error.reason}")
+
+    return 1
+
+urls = sys.argv[1:]
+
+if not urls:
+    print(f"Usage: {sys.argv[0]} URL [URL ...]")
+    raise SystemExit(2)
+
+exit_code = 0
+
+for url in urls:
+    if check_url(url) != 0:
+        exit_code = 1
+
+raise SystemExit(exit_code)
+```
+
+Запустили скрипт с GitHub и отсутствующим файлом:
+
+```text
+https://github.com -> HTTP 200
+https://raw.githubusercontent.com/abdlvmx/devsecops-lab/main/this-file-does-not-exist-20261124.txt -> HTTP error: 404
+1
+```
+
+Ошибка одного URL не прервала проверку следующего; общий код `1` показывает, что хотя бы одна проверка завершилась ошибкой.
+
+**Следующий шаг:** проверить, что единственный успешный URL после рефакторинга даёт код завершения `0`.
+
+Запустили рефакторенный скрипт с одним URL `https://github.com`:
+
+```text
+https://github.com -> HTTP 200
+0
+```
+
+Функция вернула `0`, и главный цикл завершил программу с кодом `0`, так как ошибок не было.
+
+**Следующий шаг:** убедиться, что запуск без URL по-прежнему показывает подсказку и возвращает `2`.
+
+Повторили запуск без аргументов после добавления функции:
+
+```text
+Usage: http-check.py URL [URL ...]
+2
+```
+
+Проверка подтвердила, что сценарий неверного вызова по-прежнему возвращает код `2` после рефакторинга. Три основных результата `http-check.py` теперь проверены: успешный URL даёт `0`, хотя бы один HTTP/сетевой сбой — `1`, отсутствие URL — `2`.
