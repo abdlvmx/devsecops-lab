@@ -16,12 +16,12 @@ A hands-on learning portfolio for DevSecOps and security engineering. This repos
 
 The notes capture commands, observed output, explanations, and lessons learned. They are currently written in Russian.
 
-| Module | Topics | Status |
+| 📚 Module | Topics | Progress |
 | --- | --- | --- |
-| [Git and GitHub](notes/01-git-basics.md) | Repositories, commits, branches, remotes, and GitHub workflow | Completed |
-| [Linux and Bash](notes/02-linux-terminal.md) | Terminal navigation, permissions, search, redirection, and shell scripting | Completed |
-| [Networking](notes/03-networking-basics.md) | DNS, TCP, HTTP/HTTPS, TLS, caching, and network diagnostics | Completed |
-| [Python automation](notes/04-python-automation.md) | Variables, conditions, loops, URL checks, exceptions, and exit codes | In progress |
+| [Git and GitHub](notes/01-git-basics.md) | Repositories, commits, branches, remotes, and GitHub workflow | ✅ Complete |
+| [Linux and Bash](notes/02-linux-terminal.md) | Terminal navigation, permissions, search, redirection, and shell scripting | ✅ Complete |
+| [Networking](notes/03-networking-basics.md) | DNS, TCP, HTTP/HTTPS, TLS, caching, and network diagnostics | ✅ Complete |
+| [Python automation](notes/04-python-automation.md) | Python basics, functions, URL checks, JSON, data validation, and exit codes | 🟡 In progress |
 
 ### 🧪 Hands-on Exercises
 
@@ -72,12 +72,12 @@ The scripts are small learning exercises; the repository will grow as new topics
 
 В конспектах сохранены команды, полученные результаты, объяснения и выводы по урокам.
 
-| Раздел | Темы | Статус |
+| 📚 Раздел | Темы | Прогресс |
 | --- | --- | --- |
-| [Git и GitHub](notes/01-git-basics.md) | Репозитории, коммиты, ветки, удалённый репозиторий и работа с GitHub | Завершён |
-| [Linux и Bash](notes/02-linux-terminal.md) | Навигация в терминале, права доступа, поиск, перенаправление вывода и shell-скрипты | Завершён |
-| [Сети](notes/03-networking-basics.md) | DNS, TCP, HTTP/HTTPS, TLS, кэширование и диагностика сети | Завершён |
-| [Автоматизация на Python](notes/04-python-automation.md) | Переменные, условия, циклы, проверка URL, обработка ошибок и коды завершения | В процессе |
+| [Git и GitHub](notes/01-git-basics.md) | Репозитории, коммиты, ветки, удалённый репозиторий и работа с GitHub | ✅ Завершён |
+| [Linux и Bash](notes/02-linux-terminal.md) | Навигация в терминале, права доступа, поиск, перенаправление вывода и shell-скрипты | ✅ Завершён |
+| [Сети](notes/03-networking-basics.md) | DNS, TCP, HTTP/HTTPS, TLS, кэширование и диагностика сети | ✅ Завершён |
+| [Автоматизация на Python](notes/04-python-automation.md) | Основы Python, функции, URL, JSON, проверка данных и коды завершения | 🟡 В процессе |
 
 ### 🧪 Практические упражнения
 
