@@ -1,0 +1,6 @@
+[
+	{"name": "http", "port": 80, "encrypted": false},
+	{"name": "https", "port": 443, "encrypted": true},
+	{"name": "ssh", "port": 22, "encrypted": true},
+	{"name": "telnet", "port": 23, "encrypted": false}
+]
