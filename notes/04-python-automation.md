@@ -398,3 +398,142 @@ Usage: http-check.py URL [URL ...]
 ```
 
 Проверка подтвердила, что сценарий неверного вызова по-прежнему возвращает код `2` после рефакторинга. Три основных результата `http-check.py` теперь проверены: успешный URL даёт `0`, хотя бы один HTTP/сетевой сбой — `1`, отсутствие URL — `2`.
+
+**Следующий шаг:** изучить словари Python и хранение данных по ключам.
+
+## Словари: пары «ключ — значение»
+
+Создали файл `service-info.py` со словарём:
+
+```python
+service = {
+    "name": "https",
+    "port": 443,
+    "encrypted": True,
+}
+
+print("Service:", service["name"])
+print("Port:", service["port"])
+print("Encrypted:", service["encrypted"])
+```
+
+Результат:
+
+```text
+Service: https
+Port: 443
+Encrypted: True
+```
+
+Словарь хранит пары «ключ — значение». Значение получают по ключу в квадратных скобках, например `service["port"]`.
+
+**Следующий шаг:** пройти циклом по всем парам словаря через `.items()`.
+
+Перебрали словарь `service` методом `.items()`:
+
+```python
+for key, value in service.items():
+    print(f"{key}: {value}")
+```
+
+Результат:
+
+```text
+name: https
+port: 443
+encrypted: True
+```
+
+В каждой итерации `key` получает ключ, а `value` — соответствующее ему значение.
+
+**Следующий шаг:** проверить значение `encrypted` через `if/else`.
+
+Создали словарь для сервиса `http` и проверили флаг шифрования:
+
+```python
+service = {
+    "name": "http",
+    "port": 80,
+    "encrypted": False,
+}
+
+if service["encrypted"]:
+    print(f"{service['name']} uses encryption")
+else:
+    print(f"Review: {service['name']} traffic is unecrypted")
+```
+
+Результат:
+
+```text
+Review: http traffic is unecrypted
+```
+
+Так как значение `encrypted` равно `False`, выполнилась ветка `else`. В строке сообщения была опечатка `unecrypted`; правильное написание — `unencrypted`.
+
+**Следующий шаг:** объединить список словарей с циклом и проверкой, чтобы отметить незашифрованные сервисы.
+
+## Список словарей с проверкой флага
+
+Создали список словарей для трёх учебных записей и прошли по нему циклом:
+
+```python
+services = [
+    {"name": "http", "port": 80, "encrypted": False},
+    {"name": "https", "port": 443, "encrypted": True},
+    {"name": "ssh", "port": 22, "encrypted": True},
+]
+
+for service in services:
+    if service["encrypted"]:
+        print(f"OK: {service['name']} on port {service['port']} is encrypted")
+    else:
+        print(f"REVIEW: {service['name']} on port {service['port']} is unecrypted")
+```
+
+Результат:
+
+```text
+REVIEW: http on port 80 is unecrypted
+OK: https on port 443 is encrypted
+OK: ssh on port 22 is encrypted
+```
+
+Цикл обработал каждую запись; `if/else` выбрал сообщение по значению `encrypted`. В тексте предупреждения сначала была опечатка `unecrypted`; исправили её командой `sed -i '' 's/unecrypted/unencrypted/g' service-info.py`.
+
+После исправления получили:
+
+```text
+REVIEW: http on port 80 is unencrypted
+OK: https on port 443 is encrypted
+OK: ssh on port 22 is encrypted
+```
+
+Исправление текста не изменило логику классификации записей.
+
+**Следующий шаг:** добавить счётчик и вывести общее число незашифрованных сервисов.
+
+Добавили `unencrypted_count`, увеличивали его на единицу в ветке незашифрованного сервиса и вывели итог:
+
+```text
+REVIEW: http on port 80 is unencrypted
+OK: https on port 443 is encrypted
+OK: ssh on port 22 is encrypted
+Unencrypted services found: 1
+```
+
+Оператор `+= 1` увеличил счётчик для записи `http`; итоговое значение равно `1`.
+
+**Следующий шаг:** добавить ещё одну незашифрованную запись и проверить, что итоговый счётчик станет `2`.
+
+Добавили запись `telnet` с `encrypted: False`. После повторного запуска получили:
+
+```text
+REVIEW: http on port 80 is unencrypted
+OK: https on port 443 is encrypted
+OK: ssh on port 22 is encrypted
+REVIEW: telnet on port 23 is unencrypted
+Unencrypted services found: 2
+```
+
+Счётчик увеличился для обеих записей, где `encrypted` равно `False`, и вывел итог `2`.
