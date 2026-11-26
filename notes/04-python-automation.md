@@ -4,7 +4,7 @@
 
 ## Тема 4. 🐍 Автоматизация на Python
 
-**Статус:** 🟡 Продолжаем тему; чтение JSON и проверка его структуры добавлены, диапазон порта добавлен в скрипт, но пока не проверен запуском.
+**Статус:** 🟡 Продолжаем тему; JSON-валидатор и проверка диапазона порта работают. Проверку порта вынесли в функцию; следующий шаг — подготовить программу к автоматическим тестам.
 
 ### 🎯 Цели занятия
 
@@ -693,15 +693,22 @@ for field, expected_type in expected_types.items():
 
 ## Проверка диапазона порта
 
-Добавили проверку, что целочисленный номер порта находится в диапазоне от `1` до `65535`:
+Добавили функцию, которая возвращает логическое значение и проверяет, что целочисленный номер порта находится в диапазоне от `1` до `65535`:
 
 ```python
-if not 1 <= service["port"] <= 65535:
+def is_valid_port(port):
+    return type(port) is int and 1 <= port <= 65535
+```
+
+Вызвали её внутри цикла обработки записей:
+
+```python
+if not is_valid_port(service["port"]):
     print(f"ERROR: service #{index} port must be between 1 and 65535")
     raise SystemExit(1)
 ```
 
-Границы включены. Проверка выполняется после проверки типа `port`, поэтому сравниваются именно целые числа. Код уже добавлен в `service-info.py`, но запуск после этого изменения ещё не показан.
+Функция возвращает `True`, если аргумент является целым числом в допустимом диапазоне, иначе `False`. Границы `1` и `65535` включены. Дополнительная проверка точного типа внутри функции не позволяет принять `True` или `False` за число порта.
 
 Запустили скрипт на исходном `services.json`. Все четыре записи прошли проверку диапазона; результат остался прежним: два незашифрованных сервиса.
 
@@ -715,9 +722,151 @@ Unencrypted services found: 2
 
 Проверили порт за пределами диапазона на временной записи с `port: 70000`. Скрипт вывел `ERROR: service #1 port must be between 1 and 65535` и завершился с кодом `1`. Восстановили резервную копию JSON и повторно запустили программу: все четыре записи обработаны, итог — `Unencrypted services found: 2`.
 
+При первом вызове случайно записали `if not not is_valid_port(...)`. Два оператора `not` отменили отрицание: для корректного порта функция возвращала `True`, и условие ошибочно срабатывало. Убрали лишний `not`; после исправления нормальные записи прошли, а `70000` был отклонён.
+
 Проверка значения диапазона теперь охватывает обе стороны: корректный исходный файл проходит, а недопустимый порт отклоняется с ненулевым кодом завершения.
 
-**Следующий шаг:** сохранить текущие изменения в двух тематических коммитах и отправить их на GitHub.
+## Защита точки входа скрипта
+
+Создали отдельный `main_guard_practice.py`, чтобы проверить поведение конструкции:
+
+```python
+def main():
+    print("Main function runs")
+
+if __name__ == "__main__":
+    main()
+```
+
+При запуске `python3 main_guard_practice.py` программа вывела `Main function runs`. Команда `python3 -c 'import main_guard_practice'` не вывела ничего: при импорте переменная `__name__` содержит имя модуля, поэтому условие `__name__ == "__main__"` ложно и `main()` не вызывается. При прямом запуске файла Python присваивает `__name__` значение `"__main__"`.
+
+Перенесли загрузку JSON и обработку сервисов в функцию `main()`, оставив `is_valid_port()` на уровне модуля, и добавили:
+
+```python
+if __name__ == "__main__":
+    main()
+```
+
+После рефакторинга запустили `python3 service-info.py`. Все четыре записи обработаны, итог остался `Unencrypted services found: 2`. Это показывает, что обёртывание основной логики в `main()` не изменило поведение скрипта.
+
+Получили функцию из файла через `runpy.run_path()` и проверили её без запуска `main()`:
+
+```bash
+python3 -c 'import runpy; is_valid_port = runpy.run_path("service-info.py")["is_valid_port"]; print([is_valid_port(port) for port in (1, 65535, 0, 70000, True)])'
+```
+
+Результат:
+
+```text
+[True, True, False, False, False]
+```
+
+Порты `1` и `65535` допустимы, `0` и `70000` находятся за диапазоном. `True` отклонено, потому что функция требует точный тип `int`. Вызов `runpy.run_path()` выполнил определения на уровне модуля, но условие `__name__ == "__main__"` не сработало, поэтому скрипт не читал JSON и не запускал основную обработку.
+
+Создали `test_service_info.py` на стандартном модуле `unittest`. Тесты проверяют допустимые порты (включая обе границы), значения вне диапазона и булево значение `True`:
+
+```python
+class IsValidPortTests(unittest.TestCase):
+    def test_valid_ports(self):
+        for port in (1, 443, 65535):
+            with self.subTest(port=port):
+                self.assertTrue(is_valid_port(port))
+
+    def test_ports_outside_range(self):
+        for port in (0, 70000, -1):
+            with self.subTest(port=port):
+                self.assertFalse(is_valid_port(port))
+
+    def test_boolean_is_not_a_port(self):
+        self.assertFalse(is_valid_port(True))
+```
+
+Импортировали функцию через `runpy.run_path("service-info.py")`; благодаря защите точки входа импорт не запускает `main()`. Команда `python3 -m unittest test_service_info.py` выполнила три теста и вывела `OK`.
+
+`unittest.TestCase` содержит проверки, `assertTrue` и `assertFalse` сравнивают ожидаемое логическое значение с результатом функции, а `subTest` показывает, какое конкретно значение проверялось при сбое.
+
+Запустили автоматическое обнаружение:
+
+```bash
+python3 -m unittest discover -v
+```
+
+`unittest` нашёл те же три метода и завершился сообщением `Ran 3 tests ... OK`. Шаблон `test*.py` позволяет обнаруживать тестовые файлы без перечисления каждого файла в команде.
+
+При импорте тестового модуля Python создал папку `__pycache__/`. Добавили `__pycache__/` и `*.py[cod]` в `.gitignore`; после этого кэш не отображается как неотслеживаемый объект.
+
+Вынесли проверку одной записи в отдельную функцию `validate_service()`. Она возвращает текст ошибки при неверных данных и `None`, если запись корректна:
+
+```python
+def validate_service(service, index):
+    if not isinstance(service, dict):
+        return f"ERROR: service #{index} must be a JSON object"
+
+    required_keys = {"name", "port", "encrypted"}
+    missing_keys = required_keys - service.keys()
+    if missing_keys:
+        return (
+            f"ERROR: service #{index} is missing keys: "
+            f"{', '.join(sorted(missing_keys))}"
+        )
+
+    expected_types = {"name": str, "port": int, "encrypted": bool}
+    for field, expected_type in expected_types.items():
+        if type(service[field]) is not expected_type:
+            return (
+                f"ERROR: service #{index} field '{field}' "
+                f"must be of type {expected_type.__name__}"
+            )
+
+    if not is_valid_port(service["port"]):
+        return f"ERROR: service #{index} port must be between 1 and 65535"
+
+    return None
+```
+
+В `main()` цикл вызывает валидатор один раз; если вернулась ошибка, печатает её и завершает программу с кодом `1`. Изначально после вызова `validate_service()` в `main()` остались старые проверки ключей, типов и порта. Удалили дублирующийся блок, оставив только вывод статуса шифрования и подсчёт. Также исправили пробел после двоеточия в сообщении о пропущенных ключах.
+
+После правки `python3 service-info.py` обработал четыре записи и вывел итог `Unencrypted services found: 2`. Затем `python3 -m unittest discover -v` нашёл и выполнил три теста `is_valid_port()`; результат — `OK`.
+
+Расширили `test_service_info.py`: загрузили обе функции из `service-info.py` через `runpy.run_path()` и добавили `ValidateServiceTests`:
+
+```python
+class ValidateServiceTests(unittest.TestCase):
+    def test_valid_service(self):
+        service = {"name": "https", "port": 443, "encrypted": True}
+        self.assertIsNone(validate_service(service, 1))
+
+    def test_non_object_is_rejected(self):
+        self.assertEqual(
+            validate_service("not an object", 1),
+            "ERROR: service #1 must be a JSON object",
+        )
+
+    def test_missing_key_is_reported(self):
+        service = {"name": "https", "port": 443}
+        self.assertEqual(
+            validate_service(service, 1),
+            "ERROR: service #1 is missing keys: encrypted",
+        )
+
+    def test_wrong_field_type_is_reported(self):
+        service = {"name": "https", "port": "443", "encrypted": True}
+        self.assertEqual(
+            validate_service(service, 1),
+            "ERROR: service #1 field 'port' must be of type int",
+        )
+
+    def test_out_of_range_port_is_reported(self):
+        service = {"name": "https", "port": 70000, "encrypted": True}
+        self.assertEqual(
+            validate_service(service, 1),
+            "ERROR: service #1 port must be between 1 and 65535",
+        )
+```
+
+`self.assertIsNone()` проверяет корректную запись, а `self.assertEqual()` сравнивает возвращённый текст ошибки с ожидаемым. Команда `python3 -m unittest discover -v` нашла все тесты: три для `is_valid_port()` и пять для `validate_service()`. Все восемь завершились `ok`; итоговый вывод — `Ran 8 tests ... OK`.
+
+**Следующий шаг:** сохранить текущий этап одним коммитом: валидатор, тесты, учебный пример main guard, `.gitignore` и обновлённые заметки.
 
 ## 💡 Что важно запомнить
 
@@ -730,6 +879,10 @@ Unencrypted services found: 2
 7. `try/except` позволяет обработать ожидаемые ошибки, например HTTP-ошибку, отсутствие файла и некорректный JSON.
 8. `json.load()` преобразует JSON из файла в объекты Python.
 9. Перед обработкой внешних данных полезно проверить структуру, обязательные поля, типы и допустимые значения.
+10. Небольшую проверку с одним понятным результатом удобно вынести в функцию и повторно использовать.
+11. Защита `if __name__ == "__main__"` запускает `main()` только при прямом запуске файла, а не при импорте модуля.
+12. `unittest` позволяет сохранять проверки в файлах и повторно запускать их после изменений кода.
+13. Функция-валидатор может возвращать сообщение об ошибке или `None`, оставляя печать и завершение программы вызывающему коду.
 
 ## 📝 Контрольные вопросы
 
@@ -739,4 +892,4 @@ Unencrypted services found: 2
 4. Почему `type(value) is expected_type` здесь строже, чем `isinstance(value, int)` для поля `port`?
 5. Что сообщает ненулевой код завершения скрипта?
 
-**🟡 Прогресс темы:** базовые выражения, условия и циклы; функции; HTTP-запросы и обработка ошибок; аргументы командной строки и коды завершения; словари и списки; чтение JSON; обработка ошибок файла и JSON; проверка типа структуры, элементов, обязательных полей, типов значений и диапазона порта выполнены.
+**🟡 Прогресс темы:** базовые выражения, условия и циклы; функции; HTTP-запросы и обработка ошибок; аргументы командной строки и коды завершения; словари и списки; чтение JSON; обработка ошибок файла и JSON; проверка структуры, обязательных полей, типов значений и диапазона порта; валидатор `validate_service()`; применение `main()` и защиты точки входа; восемь автоматических тестов для порта и записей сервисов. Следующий шаг — сохранить текущий этап в Git.
