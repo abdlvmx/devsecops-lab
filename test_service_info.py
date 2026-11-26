@@ -1,10 +1,14 @@
 import runpy
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 module = runpy.run_path("service-info.py")
 is_valid_port = module["is_valid_port"]
 validate_service = module["validate_service"]
-
+main = module["main"]
 
 class IsValidPortTests(unittest.TestCase):
     def test_valid_ports(self):
@@ -53,6 +57,31 @@ class ValidateServiceTests(unittest.TestCase):
             "ERROR: service #1 port must be between 1 and 65535",
         )
 
+class MainFileErrorTests(unittest.TestCase):
+    def test_missing_file_prints_error_and_exits_with_one(self):
+        with TemporaryDirectory() as temp_dir:
+            missing_path = Path(temp_dir) / "missing.json"
+            output = StringIO()
+
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as error:
+                    main(str(missing_path))
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(output.getvalue().strip(), f"ERROR: {missing_path} was not found",)
+
+    def test_invalid_json_prints_error_and_exits_with_one(self):
+        with TemporaryDirectory() as temp_dir:
+            invalid_path = Path(temp_dir) / "invalid.json"
+            invalid_path.write_text("[\n", encoding="utf-8")
+            output = StringIO()
+
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as error:
+                    main(str(invalid_path))
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(output.getvalue().strip(), "ERROR: Invalid JSON on line 2")
 
 if __name__ == "__main__":
     unittest.main()

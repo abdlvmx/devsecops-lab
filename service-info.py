@@ -31,12 +31,12 @@ def validate_service(service, index):
 
     return None
 
-def main():
+def main(services_path="services.json"):
     try:
-        with open("services.json", encoding="utf-8") as file:
+        with open(services_path, encoding="utf-8") as file:
             services = json.load(file)
     except FileNotFoundError:
-        print("ERROR: services.json was not found")
+        print(f"ERROR: {services_path} was not found")
         raise SystemExit(1)
     except json.JSONDecodeError as error:
         print(f"ERROR: Invalid JSON on line {error.lineno}")

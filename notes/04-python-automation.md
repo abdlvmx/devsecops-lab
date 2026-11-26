@@ -866,7 +866,69 @@ class ValidateServiceTests(unittest.TestCase):
 
 `self.assertIsNone()` проверяет корректную запись, а `self.assertEqual()` сравнивает возвращённый текст ошибки с ожидаемым. Команда `python3 -m unittest discover -v` нашла все тесты: три для `is_valid_port()` и пять для `validate_service()`. Все восемь завершились `ok`; итоговый вывод — `Ran 8 tests ... OK`.
 
-**Следующий шаг:** сохранить текущий этап одним коммитом: валидатор, тесты, учебный пример main guard, `.gitignore` и обновлённые заметки.
+## Путь к JSON-файлу как параметр `main()`
+
+Изменили функцию так, чтобы путь к данным можно было передать аргументом, сохранив `services.json` как значение по умолчанию:
+
+```python
+def main(services_path="services.json"):
+    try:
+        with open(services_path, encoding="utf-8") as file:
+            services = json.load(file)
+    except FileNotFoundError:
+        print(f"ERROR: {services_path} was not found")
+        raise SystemExit(1)
+```
+
+Обычный вызов `main()` по-прежнему читает `services.json`; тест может вызвать `main("путь-к-временному-файлу.json")`, не переименовывая и не перезаписывая рабочие данные. Для проверки сообщения об ошибке путь теперь включается в вывод.
+
+Запустили `python3 service-info.py`: все четыре записи обработаны, итог `Unencrypted services found: 2`. Повторно выполнили `python3 -m unittest discover -v`: все восемь существующих тестов завершились `ok`.
+
+Добавили интеграционный тест, который запускает `main()` с путём к файлу, которого нет во временной папке:
+
+```python
+class MainFileErrorTests(unittest.TestCase):
+    def test_missing_file_prints_error_and_exits_with_one(self):
+        with TemporaryDirectory() as temp_dir:
+            missing_path = Path(temp_dir) / "missing.json"
+            output = StringIO()
+
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as error:
+                    main(str(missing_path))
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(
+                output.getvalue().strip(),
+                f"ERROR: {missing_path} was not found",
+            )
+```
+
+`TemporaryDirectory` создаёт изолированную временную папку; `redirect_stdout` сохраняет напечатанное сообщение в `StringIO`; `assertRaises(SystemExit)` перехватывает завершение программы и позволяет проверить код `1`. Команда `python3 -m unittest discover -v` нашла девять тестов: три для `is_valid_port()`, пять для `validate_service()` и один для отсутствующего файла. Все завершились `ok`; итог — `Ran 9 tests ... OK`.
+
+Добавили второй интеграционный тест для некорректного JSON. Временный файл содержит незавершённый массив; тест проверяет сообщение с номером строки и код завершения:
+
+```python
+    def test_invalid_json_prints_error_and_exits_with_one(self):
+        with TemporaryDirectory() as temp_dir:
+            invalid_path = Path(temp_dir) / "invalid.json"
+            invalid_path.write_text("[\n", encoding="utf-8")
+            output = StringIO()
+
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as error:
+                    main(str(invalid_path))
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(
+                output.getvalue().strip(),
+                "ERROR: Invalid JSON on line 2",
+            )
+```
+
+После `python3 -m unittest discover -v` обнаружено десять тестов: все завершились `ok`, итог — `Ran 10 tests ... OK`. Рабочий `services.json` не изменялся: тест создаёт и использует отдельный временный файл.
+
+**Следующий шаг:** проверить корректный JSON, у которого верхний уровень — объект, а не список сервисов.
 
 ## 💡 Что важно запомнить
 
@@ -892,4 +954,4 @@ class ValidateServiceTests(unittest.TestCase):
 4. Почему `type(value) is expected_type` здесь строже, чем `isinstance(value, int)` для поля `port`?
 5. Что сообщает ненулевой код завершения скрипта?
 
-**🟡 Прогресс темы:** базовые выражения, условия и циклы; функции; HTTP-запросы и обработка ошибок; аргументы командной строки и коды завершения; словари и списки; чтение JSON; обработка ошибок файла и JSON; проверка структуры, обязательных полей, типов значений и диапазона порта; валидатор `validate_service()`; применение `main()` и защиты точки входа; восемь автоматических тестов для порта и записей сервисов. Следующий шаг — сохранить текущий этап в Git.
+**🟡 Прогресс темы:** базовые выражения, условия и циклы; функции; HTTP-запросы и обработка ошибок; аргументы командной строки и коды завершения; словари и списки; чтение JSON; обработка ошибок файла и JSON; проверка структуры, обязательных полей, типов значений и диапазона порта; валидатор `validate_service()`; применение `main()` и защиты точки входа; десять автоматических тестов для порта, записей сервисов, отсутствующего файла и некорректного JSON. Следующий шаг — тест корректного JSON с неверным типом верхнего уровня.
