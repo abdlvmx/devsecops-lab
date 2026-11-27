@@ -57,6 +57,13 @@ class ValidateServiceTests(unittest.TestCase):
             "ERROR: service #1 port must be between 1 and 65535",
         )
 
+    def test_blank_name_is_rejected(self):
+        service = {"name": "   ", "port": 443, "encrypted": True}
+        self.assertEqual(
+            validate_service(service, 1),
+            "ERROR: service #1 name must not be empty",
+        )
+
 class MainFileErrorTests(unittest.TestCase):
     def test_missing_file_prints_error_and_exits_with_one(self):
         with TemporaryDirectory() as temp_dir:

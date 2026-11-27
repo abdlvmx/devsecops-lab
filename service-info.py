@@ -26,6 +26,9 @@ def validate_service(service, index):
         if type(service[field]) is not expected_type:
             return f"ERROR: service #{index} field '{field}' must be of type {expected_type.__name__}"
 
+    if not service["name"].strip():
+        return f"ERROR: service #{index} name must not be empty"
+
     if not is_valid_port(service["port"]):
         return f"ERROR: service #{index} port must be between 1 and 65535"
 
