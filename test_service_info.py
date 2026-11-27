@@ -83,5 +83,39 @@ class MainFileErrorTests(unittest.TestCase):
             self.assertEqual(error.exception.code, 1)
             self.assertEqual(output.getvalue().strip(), "ERROR: Invalid JSON on line 2")
 
+    def test_json_object_is_rejected_when_list_is_expected(self):
+        with TemporaryDirectory() as temp_dir:
+            object_path = Path(temp_dir) / "object.json"
+            object_path.write_text('{"name":"https"}', encoding="utf-8")
+            output = StringIO()
+
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as error:
+                    main(str(object_path))
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(output.getvalue().strip(), "ERROR: expected a JSON list of services")
+
+    def test_valid_json_prints_service_results_and_summary(self):
+        with TemporaryDirectory() as temp_dir:
+            valid_path = Path(temp_dir) / "services.json"
+            valid_path.write_text(
+
+                '[{"name":"https","port":443,"encrypted":true},'
+                '{"name":"http","port":80,"encrypted":false}]\n',
+                encoding="utf-8",
+            )
+            output = StringIO()
+
+            with redirect_stdout(output):
+                main(str(valid_path))
+
+            self.assertEqual(
+                output.getvalue().strip(),
+                "OK: https on port 443 is encrypted\n"
+                "REVIEW: http on port 80 is unencrypted\n"
+                "Unencrypted services found: 1",
+            )
+
 if __name__ == "__main__":
     unittest.main()

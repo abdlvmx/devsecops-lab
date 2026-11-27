@@ -928,7 +928,57 @@ class MainFileErrorTests(unittest.TestCase):
 
 После `python3 -m unittest discover -v` обнаружено десять тестов: все завершились `ok`, итог — `Ran 10 tests ... OK`. Рабочий `services.json` не изменялся: тест создаёт и использует отдельный временный файл.
 
-**Следующий шаг:** проверить корректный JSON, у которого верхний уровень — объект, а не список сервисов.
+Добавили тест для корректного JSON-объекта, хотя скрипт ожидает список сервисов:
+
+```python
+    def test_json_object_is_rejected_when_list_is_expected(self):
+        with TemporaryDirectory() as temp_dir:
+            object_path = Path(temp_dir) / "object.json"
+            object_path.write_text('{"name":"https"}', encoding="utf-8")
+            output = StringIO()
+
+            with redirect_stdout(output):
+                with self.assertRaises(SystemExit) as error:
+                    main(str(object_path))
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(
+                output.getvalue().strip(),
+                "ERROR: expected a JSON list of services",
+            )
+```
+
+Первая попытка запуска тестов завершилась `TabError: inconsistent use of tabs and spaces in indentation`: в новом методе использовались табы, тогда как соседние методы класса были отступлены пробелами. Команда `Path.read_text().expandtabs(4)` заменила табы четырьмя пробелами; заодно исправили опечатку `excpected` в имени метода.
+
+После исправления `python3 -m unittest discover -v` нашёл одиннадцать тестов. Все завершились `ok`; итог — `Ran 11 tests ... OK`. Тест подтвердил, что корректный JSON-объект отвергается на проверке типа верхнего уровня, выводится ожидаемая ошибка, а программа завершается с кодом `1`.
+
+Добавили интеграционный тест успешной обработки JSON из временного файла:
+
+```python
+    def test_valid_json_prints_service_results_and_summary(self):
+        with TemporaryDirectory() as temp_dir:
+            valid_path = Path(temp_dir) / "services.json"
+            valid_path.write_text(
+                '[{"name":"https","port":443,"encrypted":true},'
+                '{"name":"http","port":80,"encrypted":false}]\n',
+                encoding="utf-8",
+            )
+            output = StringIO()
+
+            with redirect_stdout(output):
+                main(str(valid_path))
+
+            self.assertEqual(
+                output.getvalue().strip(),
+                "OK: https on port 443 is encrypted\n"
+                "REVIEW: http on port 80 is unencrypted\n"
+                "Unencrypted services found: 1",
+            )
+```
+
+Первая попытка не загрузила тестовый модуль из-за табов; после их замены четырьмя пробелами обнаружились опечатки `output - StringIO()` и `uncrypted` в ожидаемом выводе. Исправили присваивание на `output = StringIO()` и сообщения на `unencrypted`. Затем `python3 -m unittest discover -v` обнаружил двенадцать тестов, все завершились `ok`; итог — `Ran 12 tests ... OK`. Тест подтвердил обработку обеих записей и счётчик `1`, не затрагивая основной `services.json`.
+
+**Следующий шаг:** сохранить завершённый набор тестов и обновлённый конспект отдельным коммитом.
 
 ## 💡 Что важно запомнить
 
@@ -954,4 +1004,4 @@ class MainFileErrorTests(unittest.TestCase):
 4. Почему `type(value) is expected_type` здесь строже, чем `isinstance(value, int)` для поля `port`?
 5. Что сообщает ненулевой код завершения скрипта?
 
-**🟡 Прогресс темы:** базовые выражения, условия и циклы; функции; HTTP-запросы и обработка ошибок; аргументы командной строки и коды завершения; словари и списки; чтение JSON; обработка ошибок файла и JSON; проверка структуры, обязательных полей, типов значений и диапазона порта; валидатор `validate_service()`; применение `main()` и защиты точки входа; десять автоматических тестов для порта, записей сервисов, отсутствующего файла и некорректного JSON. Следующий шаг — тест корректного JSON с неверным типом верхнего уровня.
+**🟡 Прогресс темы:** базовые выражения, условия и циклы; функции; HTTP-запросы и обработка ошибок; аргументы командной строки и коды завершения; словари и списки; чтение JSON; обработка ошибок файла и JSON; проверка структуры, обязательных полей, типов значений и диапазона порта; валидатор `validate_service()`; применение `main()` и защиты точки входа; двенадцать автоматических тестов для порта, записей, ошибок JSON и успешного вывода. Следующий шаг — сохранить этап в Git.
