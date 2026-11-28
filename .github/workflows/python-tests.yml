@@ -1,24 +1,23 @@
 name: Python tests
 
 on:
-	push:
-		branches: [main]
-	pull_request:
-		branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
-	contents: read
+  contents: read
 
 jobs:
-	test:
-		runs-on: ubuntu-latest
-		steps:
-			- name: Check out repository
-			  uses: actions/checkout@v7
-			- name: Set up Python
-			  uses: actions/setup-python@v7
-			  with:
-				python-version: "3.15"
-
-			- name: Run unit tests
-			  run: python -m unittest discover -v
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+      - name: Run unit tests
+        run: python -m unittest discover -v
